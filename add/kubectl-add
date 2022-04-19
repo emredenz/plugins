@@ -71,10 +71,6 @@ exit_err() {
    exit 1
 }
 
-create_temporary_file(){
- TEMPORARY_FILE=`mktemp`
-}
-
 modify_string()
 {
   value=""
@@ -116,7 +112,7 @@ replace()
 }
 
 control_data() {
-  create_temporary_file
+  TEMPORARY_FILE=`mktemp`
   $KUBECTL get "${TYPE}" "${NAME}" -n "${NAMESPACE}" -o yaml > $TEMPORARY_FILE
   for data in "${DATA[@]}"
   do
@@ -156,7 +152,12 @@ process_base64(){
   if [[ "${ENCODE_BASE64}" = true ]]; then
     value=$(echo  "$value" | base64)
   elif [[ "${DECODE_BASE64}" = true ]]; then
-    value=$(echo  "$value" | base64 --decode)
+    if [[ "$value" =~ ^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$ ]]; then
+      value=$(echo  "$value" | base64 --decode)
+    else
+      echo "error: the input does not conform to the base64 format." >&2
+      exit 1
+    fi
   fi
   echo "${value}"
 }
@@ -192,70 +193,70 @@ main() {
       shift
       shift
       while test $# -gt 0; do
-            case "$1" in
-              -h|--help)
-                usage
-                exit 1
-                shift
-                ;;
-              -n)
-                shift
-                if test $# -gt 0; then
-                  export NAMESPACE="${1}"
-                else
-                  echo "error: flag needs an argument: -n"
-                  echo "See '--help(-h)' for usage."
-                  exit 1
-                fi
-                shift
-                ;;
-              --namespace)
-                shift
-                if test $# -gt 0; then
-                  export NAMESPACE="${1}"
-                else
-                  echo "error: flag needs an argument: --namespace"
-                  echo "See '--help(-h)' for usage."
-                  exit 1
-                fi
-                shift
-                ;;
-              -f|--force)
-                export FORCE=true
-                shift
-                ;;
-              -e|--encode-base64)
-                if [[ "${DECODE_BASE64}" = true ]]; then
-                  echo "error: cannot encode and decode at the same time"
-                  usage
-                  exit 1
-                else
-                  export ENCODE_BASE64=true
-                  shift
-                fi
-                ;;
-              -d|--decode-base64)
-                if [[ "${ENCODE_BASE64}" = true ]]; then
-                  echo "error: cannot encode and decode at the same time"
-                  usage
-                  exit 1
-                else
-                  export DECODE_BASE64=true
-                  shift
-                fi
-                ;;
-              -s|--set)
-                shift
-                DATA+=("${1}")
-                shift
-                ;;
-              *)
-                echo "error: you chose an incorrect argument"
-                usage
-                exit 1
-                ;;
-            esac
-          done
+        case "$1" in
+          -h|--help)
+            usage
+            exit 1
+            shift
+            ;;
+          -n)
+            shift
+            if test $# -gt 0; then
+              export NAMESPACE="${1}"
+            else
+              echo "error: flag needs an argument: -n"
+              echo "See '--help(-h)' for usage."
+              exit 1
+            fi
+            shift
+            ;;
+          --namespace)
+            shift
+            if test $# -gt 0; then
+              export NAMESPACE="${1}"
+            else
+              echo "error: flag needs an argument: --namespace"
+              echo "See '--help(-h)' for usage."
+              exit 1
+            fi
+            shift
+            ;;
+          -f|--force)
+            export FORCE=true
+            shift
+            ;;
+          -e|--encode-base64)
+            if [[ "${DECODE_BASE64}" = true ]]; then
+              echo "error: cannot encode and decode at the same time"
+              usage
+              exit 1
+            else
+              export ENCODE_BASE64=true
+              shift
+            fi
+            ;;
+          -d|--decode-base64)
+            if [[ "${ENCODE_BASE64}" = true ]]; then
+              echo "error: cannot encode and decode at the same time"
+              usage
+              exit 1
+            else
+              export DECODE_BASE64=true
+              shift
+            fi
+            ;;
+          -s|--set)
+            shift
+            DATA+=("${1}")
+            shift
+            ;;
+          *)
+            echo "error: you chose an incorrect argument"
+            usage
+            exit 1
+            ;;
+        esac
+      done
     fi
   else
     usage
