@@ -173,6 +173,7 @@ main() {
   if [[ "$#" -gt 0 ]]; then
     if [[ "${1}" == '-h' || "${1}" == '--help' ]]; then
       usage
+      exit 1
     else
       if [[ "${1}" == 'configmap' || "${1}" == 'cm' ]]; then
         export TYPE="configmap"
@@ -273,5 +274,6 @@ main() {
 
   control_data
 }
+
 
 main "$@"
