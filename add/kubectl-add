@@ -194,6 +194,7 @@ main() {
             case "$1" in
               -h|--help)
                 usage
+                exit 1
                 shift
                 ;;
               -n)
