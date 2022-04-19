@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+#
+# kubectl-add is a utility to manage kubectl-add
+
+# Copyright 2022 Emre Deniz.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[[ -n $DEBUG ]] && set -x
+
+set -eou pipefail
+
+NAMESPACE="default"
+TYPE=""
+NAME=""
+FORCE=false
+DATA=()
+ENCODE_BASE64=false
+DECODE_BASE64=false
+TEMPORARY_FILE=""
+
+KUBEADD="${XDG_CACHE_HOME:-$HOME/.kube}/kubeadd"
+
+usage() {
+  local SELF
+  SELF="kubeadd"
+  if [[ "$(basename "$0")" == kubectl-* ]]; then # invoked as plugin
+    SELF="kubectl add"
+  fi
+
+  cat <<EOF
+USAGE:
+
+  # Adds the values in the data array to the configmap named myconfigmap. If the values in the data already exist, they are replaced.
+  $SELF configmap myconfigmap --data ENVIRONMENT_NAME:VALUE -d ENVIRONMENT_NAME2:VALUE2 -f -n default
+
+  # Adds the values in the data array to the configmap named myconfigmap in default namespace. If the values in the data already exist, they are not replaced.
+  $SELF configmap myconfigmap --data ENVIRONMENT_NAME:VALUE -d ENVIRONMENT_NAME2:VALUE2 -n default
+
+  # Adds the values in the data array to the secret named mysecret in default namespace. If the values in the data already exist, they are replaced. Encrypts values with base64
+  $SELF secret mysecret --data ENVIRONMENT_NAME:VALUE -d ENVIRONMENT_NAME2:VALUE2 -f -n default -b
+
+  $SELF TYPE NAME DATA [options]
+
+  Describe Commands:
+  TYPE                       : configuration type. configmap(cm), secret
+  NAME                       : name of the configuration
+  DATA                       : list of data to add/replace. (--set, -s)
+
+  Options:
+
+  -n, --namespace: namespace.
+  -f, --force: If key exists, the values is replaced.
+  -e, --encode-base64: values are base64 encoded.
+  -d, --decode-base64: values are base64 decoded.
+EOF
+}
+
+exit_err() {
+   echo >&2 "${1}"
+   exit 1
+}
+
+create_temporary_file(){
+ TEMPORARY_FILE=`mktemp`
+}
+
+modify_string()
+{
+  value=""
+  if [[ "${1:0:1}" != "'" ]] || [[ "${1:0:1}" != "\"" ]]; then
+    value+="\""
+  fi
+  value+=${1}
+  if [[ "${1:-1}" != "'" ]] || [[ "${1:-1}" != "\"" ]]; then
+    value+="\""
+  fi
+  echo "${value}"
+}
+
+add_data()
+{
+  value=$(modify_string "${2}")
+  count=1
+  while IFS= read -r line; do
+    if [[ $line == "data:"* ]]; then
+      break
+    fi
+    let count+=1
+  done < $TEMPORARY_FILE
+  let count+=1
+  sed="sed -i '${count}i \\  \\${1}: ${value}' $TEMPORARY_FILE"
+  eval "$sed"
+}
+
+update_data()
+{
+  value=$(modify_string "${2}")
+  sed="sed -i -E 's/\<${1}\>:.+.+?/${1}: ${value}/' $TEMPORARY_FILE"
+  eval "$sed"
+}
+
+replace()
+{
+  kubectl replace -f $TEMPORARY_FILE
+}
+
+control_data() {
+  create_temporary_file
+  $KUBECTL get "${TYPE}" "${NAME}" -n "${NAMESPACE}" -o yaml > $TEMPORARY_FILE
+  for data in "${DATA[@]}"
+  do
+    IFS=':'
+    read -a strarr <<<"$data"
+    key=${strarr[0]}
+    local value=""
+    for index in "${!strarr[@]}"
+    do
+      if [[ ${index} != 0 ]]; then
+        if [[ "${value}" != "" ]]; then
+          value=${value}":"${strarr[$index]}
+        else
+          value+=${strarr[$index]}
+        fi
+      fi
+    done
+    if grep -w "$key:" $TEMPORARY_FILE 1>/dev/null 2>&1 ; then
+      if [[ ${FORCE} == true ]]; then
+        echo "The $key key is already exist, is updating."
+        value=$(process_base64 "$value")
+        update_data "$key" "$value"
+      else
+        echo "error: The $key key is already exist."
+        exit 1
+      fi
+    else
+      echo "The $key key is already exist, is adding."
+      add_data "$key" "$value"
+    fi
+  done
+  replace
+}
+
+process_base64(){
+  value="${1}"
+  if [[ "${ENCODE_BASE64}" = true ]]; then
+    value=$(echo  "$value" | base64)
+  elif [[ "${DECODE_BASE64}" = true ]]; then
+    value=$(echo  "$value" | base64 --decode)
+  fi
+  echo "${value}"
+}
+
+encode(){
+  echo  "$1" | base64
+}
+
+decode(){
+  echo  "$1" | base64 --decode
+}
+
+main() {
+  if [[ "$#" -gt 0 ]]; then
+    if [[ "${1}" == '-h' || "${1}" == '--help' ]]; then
+      usage
+    else
+      if [[ "${1}" == 'configmap' || "${1}" == 'cm' ]]; then
+        export TYPE="configmap"
+      elif [[ "${1}" == 'secret' ]]; then
+        export TYPE="secret"
+      else
+        usage
+      fi
+
+      if [[ "${2}" ]]; then
+        export NAME="${2}"
+      else
+        usage
+      fi
+
+      shift
+      shift
+      while test $# -gt 0; do
+            case "$1" in
+              -h|--help)
+                usage
+                shift
+                ;;
+              -n)
+                shift
+                if test $# -gt 0; then
+                  export NAMESPACE="${1}"
+                else
+                  echo "error: flag needs an argument: -n"
+                  echo "See '--help(-h)' for usage."
+                  exit 1
+                fi
+                shift
+                ;;
+              --namespace)
+                shift
+                if test $# -gt 0; then
+                  export NAMESPACE="${1}"
+                else
+                  echo "error: flag needs an argument: --namespace"
+                  echo "See '--help(-h)' for usage."
+                  exit 1
+                fi
+                shift
+                ;;
+              -f|--force)
+                export FORCE=true
+                shift
+                ;;
+              -e|--encode-base64)
+                if [[ "${DECODE_BASE64}" = true ]]; then
+                  echo "error: cannot encode and decode at the same time"
+                  usage
+                  exit 1
+                else
+                  export ENCODE_BASE64=true
+                  shift
+                fi
+                ;;
+              -d|--decode-base64)
+                if [[ "${ENCODE_BASE64}" = true ]]; then
+                  echo "error: cannot encode and decode at the same time"
+                  usage
+                  exit 1
+                else
+                  export DECODE_BASE64=true
+                  shift
+                fi
+                ;;
+              -s|--set)
+                shift
+                DATA+=("${1}")
+                shift
+                ;;
+              *)
+                echo "error: you chose an incorrect argument"
+                usage
+                exit 1
+                ;;
+            esac
+          done
+    fi
+  else
+    usage
+  fi
+
+  if [[ -z "${KUBECTL:-}" ]]; then
+    if hash kubectl 2>/dev/null; then
+      KUBECTL=kubectl
+    elif hash kubectl.exe  2>/dev/null; then
+      KUBECTL=kubectl.exe
+    else
+      echo >&2 "kubectl is not installed"
+      exit 1
+    fi
+  fi
+
+  control_data
+}
+
+main "$@"
