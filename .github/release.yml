@@ -1,0 +1,14 @@
+# .github/release.yml
+
+changelog:
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  categories:
+    - title: Breaking Changes 🛠
+      labels:
+        - breaking-change
+    - title: Exciting New Features 🎉
+      labels:
+        - enhancement
