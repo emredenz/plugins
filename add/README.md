@@ -21,13 +21,13 @@ sudo chmod +x kubectl-add
 USAGE:
 
   * Adds the values in the data array to the configmap named myconfigmap. If the values in the data already exist, they are replaced.
-  kubectl add configmap myconfigmap --data ENVIRONMENT_NAME:VALUE -d ENVIRONMENT_NAME2:VALUE2 -f -n default
+  kubectl add configmap myconfigmap --data ENVIRONMENT_NAME:VALUE -s ENVIRONMENT_NAME2:VALUE2 -f -n default
 
   * Adds the values in the data array to the configmap named myconfigmap in default namespace. If the values in the data already exist, they are not replaced.
-  kubectl add configmap myconfigmap --data ENVIRONMENT_NAME:VALUE -d ENVIRONMENT_NAME2:VALUE2 -n default
+  kubectl add configmap myconfigmap --data ENVIRONMENT_NAME:VALUE -s ENVIRONMENT_NAME2:VALUE2 -n default
 
   * Adds the values in the data array to the secret named mysecret in default namespace. If the values in the data already exist, they are replaced. Encrypts values with base64
-  kubectl add secret mysecret --data ENVIRONMENT_NAME:VALUE -d ENVIRONMENT_NAME2:VALUE2 -f -n default -b
+  kubectl add secret mysecret --data ENVIRONMENT_NAME:VALUE -s ENVIRONMENT_NAME2:VALUE2 -f -n default -b
 
   kubectl add TYPE NAME DATA [options]
 

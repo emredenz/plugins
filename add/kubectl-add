@@ -86,14 +86,27 @@ modify_string()
 
 add_data()
 {
+  echo $TEMPORARY_FILE
   value=$(modify_string "${2}")
   count=1
+  foundData=false
   while IFS= read -r line; do
+    if [[ $line == "data: {}" ]]; then
+      sed="sed -i 's/data: {}/data:/'' $TEMPORARY_FILE"
+      eval "$sed"
+      foundData=true
+      break
+    fi
     if [[ $line == "data:"* ]]; then
+      foundData=true
       break
     fi
     let count+=1
   done < $TEMPORARY_FILE
+  if [[ "$foundData" == "false"  ]]; then
+    echo "data:" >> $TEMPORARY_FILE
+    echo "" >> $TEMPORARY_FILE
+  fi
   let count+=1
   sed="sed -i '${count}i \\  \\${1}: ${value}' $TEMPORARY_FILE"
   eval "$sed"
@@ -132,15 +145,16 @@ control_data() {
     done
     if grep -w "$key:" $TEMPORARY_FILE 1>/dev/null 2>&1 ; then
       if [[ ${FORCE} == true ]]; then
-        echo "The $key key is already exist, is updating."
+        echo "The $key is already exist, is updating."
         value=$(process_base64 "$value")
         update_data "$key" "$value"
       else
-        echo "error: The $key key is already exist."
+        echo "error: The $key is already exist."
         exit 1
       fi
     else
-      echo "The $key key is already exist, is adding."
+      echo "The $key is adding."
+      value=$(process_base64 "$value")
       add_data "$key" "$value"
     fi
   done
