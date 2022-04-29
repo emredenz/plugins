@@ -16,7 +16,7 @@ Example installation steps:
 ``` bash
 sudo wget https://raw.githubusercontent.com/EmreDenz/plugins/main/add/kubectl-add
 sudo cp kubectl-add /usr/local/bin/kubectl-add
-sudo chmod +x kubectl-add
+sudo chmod +x /usr/local/bin/kubectl-add
 ```
 USAGE:
 
