@@ -3,7 +3,6 @@
 ![Latest GitHub release](https://img.shields.io/github/release/EmreDenz/plugins.svg)
 ![GitHub stars](https://img.shields.io/github/stars/EmreDenz/plugins.svg?label=github%20stars)
 ![Proudly written in Bash](https://img.shields.io/badge/written%20in-bash-ff69b4.svg)
-[![Website asd.io](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://asd.io/)
 
 What are tools?
 
