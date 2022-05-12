@@ -86,7 +86,6 @@ modify_string()
 
 add_data()
 {
-  echo $TEMPORARY_FILE
   value=$(modify_string "${2}")
   count=1
   foundData=false
