@@ -9,7 +9,7 @@ What are tools?
 kubectl-add is a tool for quickly adding data to configmap and secret in kubectl.
 
 Here's a **`kubectl add`** demo:
-![kubectl addm demo GIF](demo/kubectl-add-demo.gif)
+![kubectl add demo GIF](demo/kubectl-add-demo.gif)
 
 ### Examples
 
@@ -82,6 +82,9 @@ sudo wget https://raw.githubusercontent.com/EmreDenz/plugins/main/add/kubectl-ad
 sudo cp kubectl-add /usr/local/bin/kubectl-add
 sudo chmod +x /usr/local/bin/kubectl-add
 ```
+
+Here's a **`kubectl add`** installation demo:
+![kubectl add installation demo GIF](demo/kubectl-add-installation-demo.gif)
 
 ### USAGE:
 
