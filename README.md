@@ -8,6 +8,9 @@ What are tools?
 
 kubectl-add is a tool for quickly adding data to configmap and secret in kubectl.
 
+Here's a **`kubectl add`** demo:
+![kubectl addm demo GIF](demo/kubectl-add-demo.gif)
+
 ### Examples
 
 ```sh
@@ -38,12 +41,12 @@ The mykey5 is adding.
 configmap/myconfigmap replaced
 
 # adding new data to secret
-$ kubectl add mysecret mysecret -s mykey:bXl2YWx1ZQ== -n mynamespace
+$ kubectl add secret mysecret -s mykey:bXl2YWx1ZQ== -n mynamespace
 The mykey2 is adding.
 secret/mysecret replaced
 
 # adding new data to secret without value is not in base64 format
-$ kubectl add mysecret mysecret -s mykey2:randomvalue -n mynamespace
+$ kubectl add secret mysecret -s mykey2:randomvalue -n mynamespace
 The mykey2 is adding.
 error: the input does not conform to the base64 format.
 
